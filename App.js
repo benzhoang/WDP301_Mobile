@@ -1,6 +1,6 @@
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaView, StyleSheet } from 'react-native';
+import { SafeAreaView, StyleSheet, View, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -8,12 +8,11 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import HomeScreen from './src/screens/HomeScreen';
 import CoursesScreen from './src/screens/CoursesScreen';
 import BookingScreen from './src/screens/BookingScreen';
+import AccountScreen from './src/screens/AccountScreen';
+import NotificationScreen from './src/screens/NotificationScreen';
 
 // Dummy screens for tab
 function ProfileScreen() {
-  return null;
-}
-function NotificationScreen() {
   return null;
 }
 
@@ -21,13 +20,29 @@ const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
 function MainTabs() {
+  // Số thông báo mới (có thể lấy từ context hoặc state toàn cục)
+  const newNotificationCount = 2; // ví dụ tạm thời
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: '#6C63FF',
         tabBarInactiveTintColor: '#888',
-        tabBarStyle: { backgroundColor: '#fff', borderTopLeftRadius: 16, borderTopRightRadius: 16, height: 60 },
+        tabBarStyle: { 
+          backgroundColor: '#fff', 
+          borderTopLeftRadius: 16, 
+          borderTopRightRadius: 16, 
+          height: 72, // tăng chiều cao tab bar
+          paddingBottom: 12, // thêm padding dưới cho icon/text
+        },
+        tabBarLabelStyle: {
+          fontSize: 13,
+          marginBottom: 6,
+        },
+        tabBarIconStyle: {
+          marginTop: 6,
+        }
       }}
     >
       <Tab.Screen
@@ -53,13 +68,33 @@ function MainTabs() {
         component={NotificationScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <Icon name="bell-outline" color={color} size={size} />
+            <View>
+              <Icon name="bell-outline" color={color} size={size} />
+              {newNotificationCount > 0 && (
+                <View style={{
+                  position: 'absolute',
+                  right: -6,
+                  top: -3,
+                  backgroundColor: '#FF3B30',
+                  borderRadius: 8,
+                  minWidth: 16,
+                  height: 16,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  paddingHorizontal: 3,
+                }}>
+                  <Text style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>
+                    {newNotificationCount}
+                  </Text>
+                </View>
+              )}
+            </View>
           ),
         }}
       />
       <Tab.Screen
         name="Tài khoản"
-        component={ProfileScreen}
+        component={AccountScreen} // Thay ProfileScreen bằng AccountScreen
         options={{
           tabBarIcon: ({ color, size }) => (
             <Icon name="account-circle-outline" color={color} size={size} />
