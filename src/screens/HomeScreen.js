@@ -6,9 +6,9 @@ import QuickActionButton from '../components/QuickActionButton';
 import ServiceItem from '../components/ServiceItem';
 
 const services = [
-  { name: 'Đặt lịch khám', icon: 'calendar-check', color: '#FFB300' },
+  { name: 'Đặt lịch tư vấn', icon: 'calendar-check', color: '#FFB300' },
   { name: 'Tư vấn bác sĩ', icon: 'doctor', color: '#4FC3F7' },
-  { name: 'Kết quả xét nghiệm', icon: 'file-document', color: '#81C784' },
+  { name: 'Kết quả kiểm tra', icon: 'file-document', color: '#81C784' },
   { name: 'Mua thuốc', icon: 'pill', color: '#BA68C8' },
   { name: 'Thanh toán', icon: 'credit-card', color: '#FF8A65' },
   { name: 'Hồ sơ sức khỏe', icon: 'account-heart', color: '#64B5F6' },
@@ -99,7 +99,7 @@ export default function HomeScreen({ navigation }) {
               color={item.color}
               label={item.name}
               onPress={() => {
-                if (item.name === 'Đặt lịch khám') {
+                if (item.name === 'Đặt lịch tư vấn') {
                   navigation.navigate('Đặt lịch');
                 }
               }}
