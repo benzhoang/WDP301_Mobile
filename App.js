@@ -10,6 +10,12 @@ import CoursesScreen from './src/screens/CoursesScreen';
 import BookingScreen from './src/screens/BookingScreen';
 import AccountScreen from './src/screens/AccountScreen';
 import NotificationScreen from './src/screens/NotificationScreen';
+import BookAppointmentScreen from './src/screens/BookAppointmentScreen'; // Thêm dòng này
+import BookingSlotScreen from './src/screens/BookingSlotScreen';
+import CourseDetailScreen from './src/screens/CourseDetailScreen';
+import CourseLearningScreen from './src/screens/CourseLearningScreen';
+import ModuleDetailScreen from './src/screens/ModuleDetailScreen';
+import LessonDetailScreen from './src/screens/LessonDetailScreen';
 
 // Dummy screens for tab
 function ProfileScreen() {
@@ -116,6 +122,36 @@ export default function App() {
             name="Đặt lịch"
             component={BookingScreen}
             options={{ headerShown: true, title: 'Đặt lịch khám' }}
+          />
+          <Stack.Screen
+            name="BookAppointment"
+            component={BookAppointmentScreen}
+            options={{ headerShown: true, title: 'Book Appointment' }}
+          />
+          <Stack.Screen
+            name="BookingSlot"
+            component={BookingSlotScreen}
+            options={{ headerShown: true, title: 'Chọn khung giờ' }}
+          />
+          <Stack.Screen
+            name="CourseDetail"
+            component={CourseDetailScreen}
+            options={{ headerShown: true, title: 'Chi tiết khóa học' }}
+          />
+          <Stack.Screen
+            name="CourseLearning"
+            component={CourseLearningScreen}
+            options={{ headerShown: true, title: 'Lộ trình học' }}
+          />
+          <Stack.Screen
+            name="ModuleDetail"
+            component={ModuleDetailScreen}
+            options={{ headerShown: true, title: 'Chi tiết module' }}
+          />
+          <Stack.Screen
+            name="LessonDetail"
+            component={LessonDetailScreen}
+            options={{ headerShown: true, title: 'Chi tiết bài học' }}
           />
         </Stack.Navigator>
       </SafeAreaView>
