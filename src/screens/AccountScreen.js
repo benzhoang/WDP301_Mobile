@@ -1,10 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import styles from '../styles/AccountScreen.styles';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function AccountScreen() {
+export default function AccountScreen({ navigation }) {
   const [user, setUser] = useState(null);
+
+  // Tự động lấy user từ AsyncStorage khi mở màn hình
+  useEffect(() => {
+    const fetchUser = async () => {
+      const userStr = await AsyncStorage.getItem('user');
+      if (userStr) setUser(JSON.parse(userStr));
+    };
+    fetchUser();
+  }, []);
+
+  const handleLogout = async () => {
+    await AsyncStorage.removeItem('user');
+    await AsyncStorage.removeItem('token');
+    setUser(null);
+  };
 
   if (!user) {
     // Chỉ hiện đăng nhập/đăng ký khi chưa đăng nhập
@@ -15,10 +31,10 @@ export default function AccountScreen() {
             <Icon name="account-circle" size={64} color="#fff" />
           </View>
           <View style={styles.authButtons}>
-            <TouchableOpacity style={styles.loginBtn} onPress={() => setUser({ name: 'Người dùng demo' })}>
+            <TouchableOpacity style={styles.loginBtn} onPress={() => navigation.navigate('Login', { onLoginSuccess: setUser })}>
               <Text style={styles.loginBtnText}>Đăng nhập</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.registerBtn} onPress={() => setUser({ name: 'Người dùng mới' })}>
+            <TouchableOpacity style={styles.registerBtn} onPress={() => navigation.navigate('Register', { onRegisterSuccess: setUser })}>
               <Text style={styles.registerBtnText}>Đăng ký</Text>
             </TouchableOpacity>
           </View>
@@ -32,8 +48,8 @@ export default function AccountScreen() {
     <ScrollView style={{ flex: 1, backgroundColor: '#fff' }}>
       <View style={styles.headerLoggedIn}>
         <Icon name="account-circle" size={64} color="#fff" />
-        <Text style={styles.loggedInName}>Xin chào, {user.name}</Text>
-        <TouchableOpacity style={styles.logoutBtn} onPress={() => setUser(null)}>
+        <Text style={styles.loggedInName}>Xin chào, {user.name || user.email}</Text>
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Text style={styles.logoutBtnText}>Đăng xuất</Text>
         </TouchableOpacity>
       </View>

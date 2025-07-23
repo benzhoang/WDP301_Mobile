@@ -1,102 +1,113 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert } from 'react-native';
-import { courses } from './CoursesScreen';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, Image, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { enrollProgram, checkEnrollment } from '../utils/api';
 
 export default function CourseDetailScreen({ route, navigation }) {
   const course = route?.params?.course;
   const [joined, setJoined] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [enrollLoading, setEnrollLoading] = useState(false);
 
-  // Lấy các khóa học liên quan (khác id)
-  const relatedCourses = courses.filter(c => c.id !== course.id).slice(0, 2);
+  // Kiểm tra trạng thái enroll khi mở màn hình
+  useEffect(() => {
+    const fetchEnrollStatus = async () => {
+      setLoading(true);
+      try {
+        const token = await AsyncStorage.getItem('token');
+        console.log('Token:', token, 'Program ID:', course.program_id);
+        const res = await checkEnrollment(token, course.program_id);
+        setJoined(Array.isArray(res.data.data) && res.data.data.length > 0);
+      } catch (err) {
+        setJoined(false); // Nếu lỗi (chưa enroll) thì cho phép đăng ký
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchEnrollStatus();
+  }, [course.program_id]);
 
-  const handleJoin = () => {
-    Alert.alert(
-      'Xác nhận',
-      'Bạn có chắc chắn muốn tham gia khóa học này?',
-      [
-        { text: 'Hủy', style: 'cancel' },
-        { text: 'Đồng ý', onPress: () => setJoined(true) },
-      ]
-    );
+  const handleJoin = async () => {
+    setEnrollLoading(true);
+    try {
+      const token = await AsyncStorage.getItem('token');
+      await enrollProgram(token, course.program_id);
+      setJoined(true);
+      Alert.alert('Tham gia thành công!');
+    } catch (err) {
+      Alert.alert('Lỗi', err?.response?.data?.message || 'Không thể tham gia chương trình');
+    } finally {
+      setEnrollLoading(false);
+    }
   };
 
   const handleEnterCourse = () => {
     navigation.navigate('CourseLearning', { course });
   };
 
-  const renderLesson = ({ item }) => (
-    <View style={styles.lessonItem}>
-      <Text style={styles.lessonText}>• {item.title}</Text>
+  const renderContent = ({ item }) => (
+    <View style={styles.contentItem}>
+      <Text style={styles.contentTitle}>{item.title}</Text>
+      <Text style={styles.contentType}>Loại: {item.type || item.content_type}</Text>
+      {item.type === 'markdown' || item.content_type === 'markdown' ? (
+        <Text numberOfLines={4} style={styles.contentPreview}>{item.content_file_link?.slice(0, 200)}...</Text>
+      ) : null}
+      {item.type === 'video' || item.content_type === 'video' ? (
+        <Text style={styles.contentPreview}>Video: {item.content_file_link}</Text>
+      ) : null}
     </View>
   );
 
-  const renderModule = ({ item }) => (
-    <View style={styles.moduleContainer}>
-      <Text style={styles.moduleTitle}>{item.title}</Text>
-      <FlatList
-        data={item.lessons}
-        keyExtractor={l => l.id}
-        renderItem={renderLesson}
-      />
+  const renderHeader = () => (
+    <View>
+      {course.img_link ? (
+        <Image source={{ uri: course.img_link }} style={styles.courseImage} />
+      ) : null}
+      <Text style={styles.title}>{course.title}</Text>
+      <Text style={styles.meta}>
+        {course.category?.name ? `Chủ đề: ${course.category.name}` : ''}
+        {course.age_group ? ` | Độ tuổi: ${course.age_group}` : ''}
+        {course.create_at ? ` | Ngày tạo: ${new Date(course.create_at).toLocaleDateString()}` : ''}
+      </Text>
+      <Text style={styles.description}>{course.description}</Text>
+      {loading ? (
+        <ActivityIndicator size="small" color="#3498ff" style={{ marginTop: 16 }} />
+      ) : joined ? (
+        <TouchableOpacity style={[styles.button, styles.buttonJoined]} onPress={handleEnterCourse}>
+          <Text style={styles.buttonText}>Vào chương trình</Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity style={styles.button} onPress={handleJoin} disabled={enrollLoading}>
+          <Text style={styles.buttonText}>{enrollLoading ? 'Đang tham gia...' : 'Tham gia chương trình'}</Text>
+        </TouchableOpacity>
+      )}
+      <Text style={styles.sectionTitle}>Nội dung chương trình</Text>
     </View>
-  );
-
-  const renderRelated = ({ item }) => (
-    <TouchableOpacity
-      style={styles.relatedItem}
-      onPress={() => navigation.push('CourseDetail', { course: item })}
-    >
-      <Text style={styles.relatedTitle}>{item.title}</Text>
-      <Text style={styles.relatedMeta}>Tác giả: {item.author} | Ngày đăng: {item.date}</Text>
-    </TouchableOpacity>
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{course.title}</Text>
-      <Text style={styles.meta}>Tác giả: {course.author} | Ngày đăng: {course.date} | Thời lượng: {course.duration}</Text>
-      <Text style={styles.description}>{course.description}</Text>
-      <Text style={styles.sectionTitle}>Lộ trình học</Text>
-      <FlatList
-        data={course.modules}
-        keyExtractor={m => m.id}
-        renderItem={renderModule}
-        contentContainerStyle={{ paddingBottom: 16 }}
-      />
-      {joined ? (
-        <TouchableOpacity style={[styles.button, styles.buttonJoined]} onPress={handleEnterCourse}>
-          <Text style={styles.buttonText}>Vào khóa học</Text>
-        </TouchableOpacity>
-      ) : (
-        <TouchableOpacity style={styles.button} onPress={handleJoin}>
-          <Text style={styles.buttonText}>Tham gia khóa học</Text>
-        </TouchableOpacity>
-      )}
-      <Text style={styles.sectionTitle}>Khóa học liên quan</Text>
-      <FlatList
-        data={relatedCourses}
-        keyExtractor={item => item.id}
-        renderItem={renderRelated}
-        contentContainerStyle={{ paddingBottom: 16 }}
-      />
-    </View>
+    <FlatList
+      data={course.contents || []}
+      keyExtractor={item => item.content_id?.toString()}
+      renderItem={renderContent}
+      ListHeaderComponent={renderHeader}
+      contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
+    />
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', padding: 20 },
+  courseImage: { width: '100%', height: 160, borderRadius: 10, marginBottom: 12, resizeMode: 'cover' },
   title: { fontSize: 22, fontWeight: 'bold', marginBottom: 4 },
   meta: { fontSize: 13, color: '#888', marginBottom: 8 },
   description: { fontSize: 15, color: '#444', marginBottom: 16 },
   sectionTitle: { fontSize: 17, fontWeight: 'bold', marginTop: 16, marginBottom: 8 },
-  moduleContainer: { marginBottom: 12 },
-  moduleTitle: { fontSize: 15, fontWeight: 'bold', color: '#3498ff', marginBottom: 4 },
-  lessonItem: { marginLeft: 12, marginBottom: 2 },
-  lessonText: { fontSize: 14, color: '#333' },
+  contentItem: { marginBottom: 12, backgroundColor: '#f6f6f6', borderRadius: 8, padding: 10 },
+  contentTitle: { fontSize: 15, fontWeight: 'bold', color: '#3498ff', marginBottom: 2 },
+  contentType: { fontSize: 13, color: '#888', marginBottom: 2 },
+  contentPreview: { fontSize: 13, color: '#444' },
   button: { backgroundColor: '#3498ff', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 24 },
   buttonJoined: { backgroundColor: '#2ecc71' },
   buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  relatedItem: { backgroundColor: '#f3f3f3', borderRadius: 8, padding: 12, marginBottom: 10 },
-  relatedTitle: { fontSize: 15, fontWeight: 'bold', color: '#3498ff' },
-  relatedMeta: { fontSize: 12, color: '#888', marginTop: 2 },
 }); 

@@ -1,20 +1,35 @@
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function CourseLearningScreen({ route, navigation }) {
   const course = route?.params?.course;
+  const contents = course.contents || [];
 
-  const handleLessonPress = (lesson, module) => {
-    navigation.navigate('LessonDetail', { lesson, module, course });
+  // Lấy enrollId từ enrollment_status nếu có, nếu không thì tự ghép từ userId và program_id
+  const getEnrollId = async () => {
+    if (course.enrollment_status && course.enrollment_status.enroll_id) {
+      return course.enrollment_status.enroll_id;
+    }
+    const userStr = await AsyncStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    if (user && course.program_id) {
+      return `${user.id || user.user_id}_${course.program_id}`;
+    }
+    return null;
   };
 
-  const renderLesson = ({ item }, module) => {
-    // Nếu tiêu đề có từ 'video' hoặc 'clip' thì dùng icon play, ngược lại dùng icon book
-    const lowerTitle = item.title.toLowerCase();
-    const isVideo = lowerTitle.includes('video') || lowerTitle.includes('clip');
+  const handleContentPress = async (content) => {
+    const enrollId = await getEnrollId();
+    navigation.navigate('LessonDetail', { content, course, enrollId });
+  };
+
+  const renderContent = ({ item }) => {
+    const lowerTitle = (item.title || '').toLowerCase();
+    const isVideo = (item.type || item.content_type) === 'video' || lowerTitle.includes('video') || lowerTitle.includes('clip');
     return (
-      <TouchableOpacity style={styles.lessonButton} onPress={() => handleLessonPress(item, module)} activeOpacity={0.7}>
+      <TouchableOpacity style={styles.lessonButton} onPress={() => handleContentPress(item)} activeOpacity={0.7}>
         <Ionicons
           name={isVideo ? 'play-circle-outline' : 'book-outline'}
           size={22}
@@ -27,26 +42,19 @@ export default function CourseLearningScreen({ route, navigation }) {
     );
   };
 
-  const renderModule = ({ item }) => (
-    <View style={styles.moduleContainer}>
-      <Text style={styles.moduleTitle}>{item.title}</Text>
-      <FlatList
-        data={item.lessons}
-        keyExtractor={l => l.id}
-        renderItem={(props) => renderLesson(props, item)}
-      />
-    </View>
-  );
-
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{course.title}</Text>
-      <Text style={styles.meta}>Tác giả: {course.author} | Ngày đăng: {course.date} | Thời lượng: {course.duration}</Text>
-      <Text style={styles.sectionTitle}>Lộ trình học</Text>
+      <Text style={styles.meta}>
+        {course.category?.name ? `Chủ đề: ${course.category.name}` : ''}
+        {course.age_group ? ` | Độ tuổi: ${course.age_group}` : ''}
+        {course.create_at ? ` | Ngày tạo: ${new Date(course.create_at).toLocaleDateString()}` : ''}
+      </Text>
+      <Text style={styles.sectionTitle}>Nội dung chương trình</Text>
       <FlatList
-        data={course.modules}
-        keyExtractor={m => m.id}
-        renderItem={renderModule}
+        data={contents}
+        keyExtractor={item => item.content_id?.toString()}
+        renderItem={renderContent}
         contentContainerStyle={{ paddingBottom: 16 }}
       />
     </View>
@@ -58,8 +66,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: 'bold', marginBottom: 4 },
   meta: { fontSize: 13, color: '#888', marginBottom: 8 },
   sectionTitle: { fontSize: 17, fontWeight: 'bold', marginTop: 16, marginBottom: 8 },
-  moduleContainer: { backgroundColor: '#f3f3f3', borderRadius: 8, padding: 16, marginBottom: 12 },
-  moduleTitle: { fontSize: 15, fontWeight: 'bold', color: '#3498ff', marginBottom: 8 },
   lessonButton: {
     flexDirection: 'row',
     alignItems: 'center',

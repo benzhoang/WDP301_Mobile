@@ -100,7 +100,7 @@ export default function HomeScreen({ navigation }) {
               label={item.name}
               onPress={() => {
                 if (item.name === 'Đặt lịch tư vấn') {
-                  navigation.navigate('Đặt lịch');
+                  navigation.navigate('BookingConsultant');
                 }
               }}
             />

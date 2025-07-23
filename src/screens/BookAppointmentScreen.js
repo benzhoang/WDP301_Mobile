@@ -2,12 +2,14 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 
-export default function BookAppointmentScreen({ navigation }) {
+export default function BookAppointmentScreen({ navigation, route }) {
+
+  const { consultant } = route.params || {};
   const today = new Date();
   const formattedToday = today.toISOString().split('T')[0];
 
   const handleDayPress = (day) => {
-    navigation.replace('BookingSlot', { selectedDate: day.dateString });
+    navigation.replace('BookingSlot', { selectedDate: day.dateString, consultant });
   };
 
   return (

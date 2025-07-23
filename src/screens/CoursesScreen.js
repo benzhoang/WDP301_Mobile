@@ -1,106 +1,81 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
-
-// Dữ liệu mẫu cho danh sách khóa học tư vấn/phòng chống ma túy
-export const courses = [
-  {
-    id: 'course1',
-    title: 'Phòng tránh nghiện ma túy',
-    description: 'Những kiến thức cơ bản giúp bạn và gia đình phòng tránh nguy cơ nghiện ma túy.',
-    author: 'TS. Nguyễn Văn A',
-    date: '2024-05-10',
-    duration: '2 giờ',
-    modules: [
-      {
-        id: 'm1',
-        title: 'Nhận biết nguy cơ',
-        lessons: [
-          { id: 'l1', title: 'Dấu hiệu nhận biết sớm' },
-          { id: 'l2', title: 'Tác động của ma túy' },
-        ],
-      },
-      {
-        id: 'm2',
-        title: 'Phòng tránh cho gia đình',
-        lessons: [
-          { id: 'l3', title: 'Giáo dục con cái' },
-          { id: 'l4', title: 'Vai trò của cha mẹ' },
-        ],
-      },
-    ],
-  },
-  {
-    id: 'course2',
-    title: 'Tư vấn tâm lý cho người nghiện',
-    description: 'Các phương pháp tư vấn tâm lý hỗ trợ người nghiện vượt qua khó khăn.',
-    author: 'ThS. Trần Thị B',
-    date: '2024-04-22',
-    duration: '1.5 giờ',
-    modules: [
-      {
-        id: 'm1',
-        title: 'Tâm lý người nghiện',
-        lessons: [
-          { id: 'l1', title: 'Hiểu về tâm lý người nghiện' },
-          { id: 'l2', title: 'Những khó khăn thường gặp' },
-        ],
-      },
-      {
-        id: 'm2',
-        title: 'Kỹ năng tư vấn',
-        lessons: [
-          { id: 'l3', title: 'Lắng nghe và chia sẻ' },
-          { id: 'l4', title: 'Động viên và hỗ trợ' },
-        ],
-      },
-    ],
-  },
-  {
-    id: 'course3',
-    title: 'Hòa nhập cộng đồng sau cai nghiện',
-    description: 'Hỗ trợ người nghiện tái hòa nhập cộng đồng sau điều trị.',
-    author: 'PGS. Lê Văn C',
-    date: '2024-03-15',
-    duration: '2.5 giờ',
-    modules: [
-      {
-        id: 'm1',
-        title: 'Khó khăn khi tái hòa nhập',
-        lessons: [
-          { id: 'l1', title: 'Kỳ thị xã hội' },
-          { id: 'l2', title: 'Tìm việc làm' },
-        ],
-      },
-      {
-        id: 'm2',
-        title: 'Giải pháp hỗ trợ',
-        lessons: [
-          { id: 'l3', title: 'Vai trò của cộng đồng' },
-          { id: 'l4', title: 'Chính sách xã hội' },
-        ],
-      },
-    ],
-  },
-];
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, Image } from 'react-native';
+import { getProgramsWithStatus } from '../utils/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function CoursesScreen({ navigation }) {
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      setLoading(true);
+      try {
+        const token = await AsyncStorage.getItem('token');
+        if (!token) throw new Error('Bạn cần đăng nhập để xem khóa học');
+        const res = await getProgramsWithStatus(token);
+        setCourses(res.data.data || []);
+      } catch (err) {
+        setError(err?.response?.data?.message || err.message || 'Lỗi khi tải danh sách chương trình');
+        Alert.alert('Lỗi', err?.response?.data?.message || err.message || 'Lỗi khi tải danh sách chương trình');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCourses();
+  }, []);
+
   const renderItem = ({ item }) => (
     <TouchableOpacity
       style={styles.courseItem}
       onPress={() => navigation.navigate('CourseDetail', { course: item })}
     >
+      {item.img_link ? (
+        <Image source={{ uri: item.img_link }} style={styles.courseImage} />
+      ) : null}
       <Text style={styles.courseTitle}>{item.title}</Text>
       <Text style={styles.courseDesc}>{item.description}</Text>
-      <Text style={styles.courseMeta}>Tác giả: {item.author} | Ngày đăng: {item.date} | Thời lượng: {item.duration}</Text>
+      <Text style={styles.courseMeta}>
+        {item.category?.name ? `Chủ đề: ${item.category.name}` : ''}
+        {item.age_group ? ` | Độ tuổi: ${item.age_group}` : ''}
+      </Text>
+      <Text style={styles.statusText}>
+        {item.enrollmentStatus?.is_enrolled ?
+          (item.enrollmentStatus?.has_complete ? 'Đã hoàn thành' : 'Đang học')
+          : 'Chưa tham gia'}
+      </Text>
+      {item.enrollmentStatus?.is_enrolled && (
+        <Text style={styles.progressText}>
+          Tiến độ: {item.enrollmentStatus?.progress_percentage || 0}%
+        </Text>
+      )}
     </TouchableOpacity>
   );
 
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}> 
+        <ActivityIndicator size="large" color="#6C63FF" />
+        <Text>Đang tải danh sách chương trình...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}> 
+        <Text style={{ color: 'red' }}>{error}</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Danh sách khóa học</Text>
+      <Text style={styles.header}>Danh sách chương trình</Text>
       <FlatList
         data={courses}
-        keyExtractor={item => item.id}
+        keyExtractor={item => item.program_id?.toString()}
         renderItem={renderItem}
         contentContainerStyle={{ paddingBottom: 16 }}
       />
@@ -112,7 +87,10 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', padding: 20 },
   header: { fontSize: 20, fontWeight: 'bold', marginBottom: 16 },
   courseItem: { backgroundColor: '#f3f3f3', borderRadius: 10, padding: 16, marginBottom: 12 },
+  courseImage: { width: '100%', height: 120, borderRadius: 8, marginBottom: 8, resizeMode: 'cover' },
   courseTitle: { fontSize: 16, fontWeight: 'bold', color: '#3498ff' },
   courseDesc: { fontSize: 14, color: '#444', marginTop: 4 },
   courseMeta: { fontSize: 12, color: '#888', marginTop: 4 },
+  statusText: { fontSize: 13, color: '#2ecc71', marginTop: 4, fontWeight: 'bold' },
+  progressText: { fontSize: 12, color: '#888', marginTop: 2 },
 });

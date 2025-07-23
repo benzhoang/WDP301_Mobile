@@ -1,44 +1,42 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, RefreshControl } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { getMyBookings } from '../utils/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 
-const initialBookings = [
-  {
-    id: '1',
-    name: 'Nguyễn Văn A',
-    date: '2025-06-20T09:00:00',
-    topic: 'Tư vấn tâm lý',
-    status: 'Đang chờ xác nhận',
-    consultant: 'Nguyễn Thị B',
-    note: 'Mang theo hồ sơ bệnh án nếu có.',
-  },
-  {
-    id: '2',
-    name: 'Nguyễn Văn A',
-    date: '2025-06-18T14:00:00',
-    topic: 'Tư vấn cai nghiện',
-    status: 'Đã xác nhận',
-    consultant: 'Trần Văn C',
-    note: 'Đến sớm 10 phút trước giờ hẹn.',
-  },
-];
-
-export default function BookingScreen({ navigation, route }) {
-  const [bookings, setBookings] = useState(initialBookings);
+export default function BookingScreen({ navigation }) {
+  const [bookings, setBookings] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  React.useEffect(() => {
-    if (route?.params?.newBooking) {
-      setBookings([route.params.newBooking, ...bookings]);
-      setExpandedId(route.params.newBooking.id);
+  const fetchBookings = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) return setBookings([]);
+      const res = await getMyBookings(token);
+      setBookings(res.data?.data || []);
+    } catch {
+      setBookings([]);
     }
-  }, [route?.params?.newBooking]);
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchBookings();
+    }, [])
+  );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchBookings().finally(() => setRefreshing(false));
+  }, []);
 
   const markedDates = bookings.reduce((acc, item) => {
-    const dateStr = item.date.split('T')[0];
-    acc[dateStr] = { marked: true, dotColor: '#6C63FF' };
+    const dateStr = (item.booking_date || item.date || '').split('T')[0];
+    if (dateStr) acc[dateStr] = { marked: true, dotColor: '#6C63FF' };
     return acc;
   }, {});
   if (selectedDate) {
@@ -50,26 +48,28 @@ export default function BookingScreen({ navigation, route }) {
   };
 
   const renderBookingItem = ({ item }) => (
-    <TouchableOpacity onPress={() => handleExpand(item.id)} activeOpacity={0.8}>
+    <TouchableOpacity onPress={() => handleExpand(item.booking_id || item.id)} activeOpacity={0.8}>
       <View style={styles.bookingItem}>
         <View style={{ flex: 1 }}>
           <Text style={styles.bookingDate}>
-            {new Date(item.date).toLocaleDateString()} {new Date(item.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {new Date(item.booking_date || item.date).toLocaleDateString()} {item.slot_time ? `${item.slot_time.start_time} - ${item.slot_time.end_time}` : ''}
           </Text>
-          <Text style={styles.bookingReason}>{item.topic}</Text>
+          <Text style={styles.bookingReason}>{item.consultant_name || item.consultant || 'Tư vấn viên'}</Text>
         </View>
         <Text style={[
           styles.bookingStatus,
-          item.status === 'Đã xác nhận' ? { color: '#4FC3F7' } : { color: '#FFB300' }
+          item.status === 'Đã xác nhận' || item.status === 'Xác nhận thành công' ? { color: '#4FC3F7' } : { color: '#FFB300' }
         ]}>
           {item.status}
         </Text>
       </View>
-      {expandedId === item.id && (
+      {expandedId === (item.booking_id || item.id) && (
         <View style={styles.bookingDetail}>
-          <Text style={styles.detailText}><Text style={styles.detailLabel}>Họ và tên:</Text> {item.name}</Text>
-          <Text style={styles.detailText}><Text style={styles.detailLabel}>Nhân viên tư vấn:</Text> {item.consultant}</Text>
-          <Text style={styles.detailText}><Text style={styles.detailLabel}>Ghi chú:</Text> {item.note || 'Không có'}</Text>
+          <Text style={styles.detailText}><Text style={styles.detailLabel}>Tư vấn viên:</Text> {item.consultant_name || item.consultant || 'Tư vấn viên'}</Text>
+          <Text style={styles.detailText}><Text style={styles.detailLabel}>Ghi chú:</Text> {item.notes || item.note || 'Không có'}</Text>
+          {item.google_meet_link ? (
+            <Text style={styles.detailText}><Text style={styles.detailLabel}>Google Meet:</Text> {item.google_meet_link}</Text>
+          ) : null}
         </View>
       )}
     </TouchableOpacity>
@@ -94,7 +94,7 @@ export default function BookingScreen({ navigation, route }) {
           }}
           style={styles.calendar}
         />
-        <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('BookAppointment')}> 
+        <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('BookingConsultant')}> 
           <Icon name="plus" size={20} color="#fff" />
           <Text style={styles.addButtonText}>Đặt lịch mới</Text>
         </TouchableOpacity>
@@ -102,10 +102,11 @@ export default function BookingScreen({ navigation, route }) {
       <Text style={styles.subHeader}>Danh sách lịch đã đặt</Text>
       <FlatList
         data={bookings}
-        keyExtractor={item => item.id}
+        keyExtractor={item => (item.booking_id || item.id)?.toString()}
         renderItem={renderBookingItem}
         ListEmptyComponent={<Text style={{ color: '#888', textAlign: 'center', marginTop: 16 }}>Chưa có lịch tư vấn nào</Text>}
         contentContainerStyle={{ paddingBottom: 32 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       />
     </View>
   );

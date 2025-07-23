@@ -16,6 +16,9 @@ import CourseDetailScreen from './src/screens/CourseDetailScreen';
 import CourseLearningScreen from './src/screens/CourseLearningScreen';
 import ModuleDetailScreen from './src/screens/ModuleDetailScreen';
 import LessonDetailScreen from './src/screens/LessonDetailScreen';
+import LoginScreen from './src/screens/LoginScreen';
+import RegisterScreen from './src/screens/RegisterScreen';
+import BookingConsultantScreen from './src/screens/BookingConsultantScreen';
 
 // Dummy screens for tab
 function ProfileScreen() {
@@ -124,6 +127,11 @@ export default function App() {
             options={{ headerShown: true, title: 'Đặt lịch khám' }}
           />
           <Stack.Screen
+            name="BookingConsultant"
+            component={BookingConsultantScreen}
+            options={{ headerShown: true, title: 'Chọn tư vấn viên' }}
+          />
+          <Stack.Screen
             name="BookAppointment"
             component={BookAppointmentScreen}
             options={{ headerShown: true, title: 'Book Appointment' }}
@@ -153,6 +161,9 @@ export default function App() {
             component={LessonDetailScreen}
             options={{ headerShown: true, title: 'Chi tiết bài học' }}
           />
+          <Stack.Screen name="Account" component={AccountScreen} />
+          <Stack.Screen name="Login" component={LoginScreen}  options={{ headerShown: true, title: 'Đăng nhập'}}/>
+          <Stack.Screen name="Register" component={RegisterScreen}  options={{ headerShown: true, title: 'Đăng ký'}}/>
         </Stack.Navigator>
       </SafeAreaView>
     </NavigationContainer>
