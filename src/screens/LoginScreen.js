@@ -15,6 +15,7 @@
       setLoading(true);
       try {
         const res = await login(email, password);
+        console.log(res.data);
         await AsyncStorage.setItem('user', JSON.stringify(res.data.user));
         await AsyncStorage.setItem('token', res.data.token);
         if (onLoginSuccess) onLoginSuccess(res.data.user, res.data.token);

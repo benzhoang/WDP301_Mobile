@@ -18,7 +18,21 @@ export default function BookingSlotScreen({ navigation, route }) {
     }
     getConsultantSlots(consultant.id_consultant || consultant._id)
       .then(res => {
-        setSlots(res.data?.data || []);
+        const rawSlots = res.data?.data || [];
+
+        // 👉 Lọc trùng theo giờ
+        const seen = new Set();
+        const uniqueSlots = [];
+
+        rawSlots.forEach(slot => {
+          const key = `${slot.start_time}-${slot.end_time}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            uniqueSlots.push(slot);
+          }
+        });
+
+        setSlots(uniqueSlots);
       })
       .catch(() => setSlots([]))
       .finally(() => setLoading(false));
@@ -37,7 +51,7 @@ export default function BookingSlotScreen({ navigation, route }) {
       }
       const data = {
         consultant_id: consultant.id_consultant || consultant._id,
-        slot_id: selectedSlot.slot_id,
+        slot_id: selectedSlot.slot_id?._id,
         booking_date: selectedDate,
       };
       const res = await createBooking(token, data);
@@ -54,12 +68,12 @@ export default function BookingSlotScreen({ navigation, route }) {
 
   const renderSlot = (slot) => (
     <TouchableOpacity
-      key={slot.slot_id}
-      style={[styles.slot, selectedSlot?.slot_id === slot.slot_id && styles.slotSelected]}
+      key={slot._id}
+      style={[styles.slot, selectedSlot?.slot_id?._id === slot.slot_id?._id && styles.slotSelected]}
       onPress={() => setSelectedSlot(slot)}
     >
-      <Text style={[styles.slotText, selectedSlot?.slot_id === slot.slot_id && { color: '#fff' }]}>
-        {slot.start_time?.slice(0,5)} - {slot.end_time?.slice(0,5)}
+      <Text style={[styles.slotText, selectedSlot?.slot_id?._id === slot.slot_id?._id && { color: '#fff' }]}>
+        {slot.start_time?.slice(0, 5)} - {slot.end_time?.slice(0, 5)}
       </Text>
     </TouchableOpacity>
   );

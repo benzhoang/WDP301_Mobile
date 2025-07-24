@@ -4,7 +4,7 @@ const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 console.log('API_BASE_URL:', API_BASE_URL); // Kiểm tra giá trị
 // ==== AUTH ====
 export const login = (email, password) =>
-    res = axios.post(`${API_BASE_URL}/api/login`, { email, password });
+    axios.post(`${API_BASE_URL}/api/login`, { email, password });
 
 export const register = (email, password, role) =>
     axios.post(`${API_BASE_URL}/api/register`, { email, password, role });
@@ -27,7 +27,7 @@ export const getProgramsByCategory = (categoryId) =>
     axios.get(`${API_BASE_URL}/api/programs/category/${categoryId}`);
 
 export const getProgramsWithStatus = (token) =>
-  axios.get(`${API_BASE_URL}/api/programs/my-enrollment-status`, { headers: { Authorization: `Bearer ${token}` } });
+    axios.get(`${API_BASE_URL}/api/programs/my-enrollment-status`, { headers: { Authorization: `Bearer ${token}` } });
 
 // ==== ENROLLMENT ====
 export const enrollProgram = (token, program_id) =>
@@ -85,8 +85,8 @@ export const createFlag = (token, blog_id, reason) =>
 
 // Có thể bổ sung thêm các API khác khi cần thiết 
 export const toggleContentCompletion = (token, enrollId, contentId) =>
-  axios.patch(
-    `${API_BASE_URL}/api/enrollments/${enrollId}/content/${contentId}/toggle`,
-    {},
-    { headers: { Authorization: `Bearer ${token}` } }
-  ); 
+    axios.patch(
+        `${API_BASE_URL}/api/enrollments/${enrollId}/content/${contentId}/toggle`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+    ); 
